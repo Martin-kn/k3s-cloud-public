@@ -1,0 +1,72 @@
+---
+# deny-all in trivy-system namespace.
+# Prevents a compromised scanner job from connecting laterally
+# to other services or exfiltrating data to arbitrary destinations.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all
+  namespace: trivy-system
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# Allow Prometheus to scrape metrics from the operator and scanner jobs.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus
+  namespace: trivy-system
+spec:
+  podSelector: {}
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+---
+# Allow egress to the Kubernetes API server (TCP 443) and DNS (UDP/TCP 53).
+# Needed for the operator to discover pods and create scan jobs.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-k8s-api-dns
+  namespace: trivy-system
+spec:
+  podSelector: {}
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.0/8
+      ports:
+        - port: 443
+          protocol: TCP
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+---
+# Allow egress to container registries (TCP 443) for image scanning
+# and vulnerability database downloads.
+# This is the widest egress rule — it cannot be further restricted
+# without knowing every registry where images are hosted.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-registry
+  namespace: trivy-system
+spec:
+  podSelector: {}
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 443
+          protocol: TCP

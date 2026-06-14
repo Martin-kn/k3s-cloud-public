@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diun
+  namespace: diun
+  labels:
+    app: diun
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: diun
+  template:
+    metadata:
+      labels:
+        app: diun
+    spec:
+      serviceAccountName: diun
+      automountServiceAccountToken: true
+      initContainers:
+        # ARM64 workaround: extracts images from the cluster and generates the
+        # file provider config for Diun (kubernetes provider not available on arm64).
+        # For amd64, remove this initContainer and revert to kubernetes: {} in config.
+        - name: generate-images
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              kubectl get pods -A \
+                -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{"\n"}{end}{end}' \
+                > /tmp/k8s-images.txt
+              printf "%s\n" "docker.io/library/nginx:1.25.0" >> /tmp/k8s-images.txt
+              sort -u /tmp/k8s-images.txt \
+                | awk '{print "- name: "$0}' \
+                > /images/00-k8s-images.yml
+          volumeMounts:
+            - mountPath: /images
+              name: images
+          resources:
+            limits:
+              memory: 64Mi
+              cpu: 100m
+            requests:
+              memory: 32Mi
+              cpu: 50m
+      containers:
+        - name: diun
+          image: crazymax/diun:latest
+          args:
+            - serve
+          env:
+            - name: TZ
+              value: America/Sao_Paulo
+            - name: LOG_LEVEL
+              value: info
+            - name: DIUN_DB
+              value: /data/diun.db
+          volumeMounts:
+            - mountPath: /data
+              name: data
+            - mountPath: /etc/diun
+              name: config
+            - mountPath: /images
+              name: images
+          resources:
+            limits:
+              memory: 128Mi
+              cpu: 200m
+            requests:
+              memory: 64Mi
+              cpu: 100m
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: images
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: diun

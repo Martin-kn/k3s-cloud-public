@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ntfy-config
+  namespace: ntfy
+data:
+  server.yml: |
+    base-url: "http://<oracle-vm-mesh-ip>:30510"
+    cache-file: "/var/cache/ntfy/cache.db"
+    cache-duration: "0"
+    listen-http: ":80"

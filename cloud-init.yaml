@@ -1,0 +1,21 @@
+#cloud-config
+hostname: k3s-vm
+
+users:
+  - name: k3s
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - "<ssh-public-key>"
+
+packages:
+  - tmux
+  - htop
+  - curl
+  - wget
+  - git
+  - python3
+  - python3-pip
+
+runcmd:
+  - hostnamectl set-hostname k3s-vm

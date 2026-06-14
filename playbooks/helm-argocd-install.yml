@@ -1,0 +1,84 @@
+---
+- name: Install Helm and ArgoCD on K3s
+  hosts: oracle
+  become: yes
+  vars:
+    helm_script_url: "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
+    argocd_helm_repo: "https://argoproj.github.io/argo-helm"
+    argocd_chart: "argo/argo-cd"
+    argocd_namespace: "argocd"
+    argocd_cli_url: "https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-arm64"
+
+  tasks:
+    - name: Check if Helm is already installed
+      stat:
+        path: /usr/local/bin/helm
+      register: helm_binary
+
+    - name: Install Helm
+      shell: |
+        curl -fsSL {{ helm_script_url }} | bash
+      args:
+        creates: /usr/local/bin/helm
+      when: not helm_binary.stat.exists
+
+    - name: Verify Helm version
+      command: helm version --short
+      register: helm_version
+      changed_when: false
+
+    - name: Print Helm version
+      debug:
+        msg: "Helm {{ helm_version.stdout }} installed"
+
+    - name: Add Argo Helm repository
+      command: helm repo add argo {{ argocd_helm_repo }}
+      register: repo_add
+      changed_when: "'already exists' not in repo_add.stderr"
+
+    - name: Update Helm repositories
+      command: helm repo update
+
+    - name: Check if ArgoCD is already installed via Helm
+      command: helm list -n {{ argocd_namespace }} --output json
+      changed_when: false
+      register: argocd_helm_release
+
+    - name: Install ArgoCD via Helm chart
+      command: >
+        helm upgrade --install argocd {{ argocd_chart }}
+        --namespace {{ argocd_namespace }} --create-namespace
+        -f manifests/argocd/values-argocd.yaml
+      when: argocd_helm_release.stdout == "[]"
+
+    - name: Wait for ArgoCD pods to be ready
+      command: >
+        kubectl wait --for=condition=Ready pods --all
+        -n {{ argocd_namespace }} --timeout=180s
+      when: argocd_helm_release.stdout == "[]"
+
+    - name: Check if ArgoCD CLI is installed
+      stat:
+        path: /usr/local/bin/argocd
+      register: argocd_cli
+
+    - name: Install ArgoCD CLI
+      get_url:
+        url: "{{ argocd_cli_url }}"
+        dest: /usr/local/bin/argocd
+        mode: '0755'
+      when: not argocd_cli.stat.exists
+
+    - name: Get ArgoCD initial admin password
+      command: >
+        kubectl -n {{ argocd_namespace }} get secret argocd-initial-admin-secret
+        -o jsonpath="{.data.password}" | base64 -d
+      register: argocd_password
+      changed_when: false
+
+    - name: Print ArgoCD access info
+      debug:
+        msg:
+          - "ArgoCD UI: kubectl port-forward -n argocd svc/argocd-server 8080:443"
+          - "Admin password: {{ argocd_password.stdout }}"
+          - "ArgoCD CLI: argocd version --client"

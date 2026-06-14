@@ -1,0 +1,46 @@
+alertmanager:
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ['namespace', 'severity']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'ntfy'
+    receivers:
+      - name: ntfy
+        webhook_configs:
+          - url: http://<oracle-vm-mesh-ip>:30510/alertas-k3s
+            send_resolved: true
+  service:
+    type: LoadBalancer
+    port: 9093
+    targetPort: 9093
+    nodePort: 30903
+prometheus:
+  service:
+    type: LoadBalancer
+    port: 9090
+    targetPort: 9090
+    nodePort: 30090
+  prometheusSpec:
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+grafana:
+  service:
+    type: LoadBalancer
+    port: 80
+    targetPort: 3000
+    nodePort: 31000
+  persistence:
+    enabled: true
+    storageClassName: local-path
+    accessModes: ["ReadWriteOnce"]
+    size: 5Gi

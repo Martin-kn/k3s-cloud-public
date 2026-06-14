@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uptime-kuma
+  namespace: uptime-kuma
+  labels:
+    app: uptime-kuma
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: uptime-kuma
+  template:
+    metadata:
+      labels:
+        app: uptime-kuma
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: uptime-kuma
+          image: louislam/uptime-kuma:2
+          ports:
+            - containerPort: 3001
+              name: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - mountPath: /app/data
+              name: data
+          resources:
+            limits:
+              memory: 256Mi
+              cpu: 200m
+            requests:
+              memory: 128Mi
+              cpu: 100m
+        - name: autokuma
+          image: ghcr.io/bigboot/autokuma:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: AUTOKUMA__KUMA__URL
+              value: "http://localhost:3001"
+            - name: AUTOKUMA__KUMA__USERNAME
+              value: "admin"
+            - name: AUTOKUMA__KUMA__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: autokuma-credentials
+                  key: password
+                  optional: true
+            - name: AUTOKUMA__FILES__ENABLED
+              value: "true"
+            - name: AUTOKUMA__STATIC_MONITORS
+              value: "/config/monitors"
+            - name: AUTOKUMA__KUMA__TLS__VERIFY
+              value: "false"
+            - name: AUTOKUMA__DOCKER__ENABLED
+              value: "false"
+            - name: AUTOKUMA__KUBERNETES__ENABLED
+              value: "false"
+            - name: AUTOKUMA__KUMA__CALL_TIMEOUT
+              value: "30"
+            - name: AUTOKUMA__KUMA__CONNECT_TIMEOUT
+              value: "15"
+            - name: RUST_LOG
+              value: "debug"
+          volumeMounts:
+            - mountPath: /config/monitors
+              name: autokuma-monitors
+            - mountPath: /data
+              name: autokuma-data
+          resources:
+            limits:
+              memory: 64Mi
+              cpu: 50m
+            requests:
+              memory: 32Mi
+              cpu: 25m
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: uptime-kuma
+        - name: autokuma-monitors
+          configMap:
+            name: autokuma-monitors
+        - name: autokuma-data
+          emptyDir: {}

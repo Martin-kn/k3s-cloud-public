@@ -1,0 +1,31 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-labels
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: check-for-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - argocd
+                - monitoring
+                - falco
+                - trivy-system
+                - diun
+                - kube-bench
+      validate:
+        message: "Labels 'app' y 'env' son requeridos."
+        pattern:
+          metadata:
+            labels:
+              app: "?*"
+              env: "?*"

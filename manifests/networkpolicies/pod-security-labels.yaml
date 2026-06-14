@@ -1,0 +1,85 @@
+---
+# PodSecurity admission labels by namespace.
+# Kubernetes built-in admission controller that enforces
+# the restricted pod security standard on all namespaces
+# except system-level ones.
+#
+# Baseline: prevents known privileged escalations (allowPrivilegeEscalation,
+#            privileged containers, hostNetwork, hostPID, hostIPC, hostPath,
+#            capabilities add, seccomp missing).
+# Restricted: Baseline + more constraints (runAsNonRoot, seccomp required,
+#             readOnlyRootFilesystem recommended, capabilities drop required).
+#
+# Namespaces excluded from enforcement (set to "privileged"):
+#   - argocd    (needs permissions to manage cluster resources)
+#   - falco     (needs privileged + hostPID + hostNetwork for syscall capture)
+#   - trivy-system (needs containerd socket mount)
+#   - diun      (needs socket mount + init container)
+#   - monitoring  (node-exporter needs hostNetwork, Prometheus/Grafana needs
+#                  various permissions; evaluate each component separately)
+#
+# ── system-level namespaces ──
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: falco
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trivy-system
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: diun
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: latest
+---
+# ── application namespaces ──
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ntfy
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: uptime-kuma
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-bench
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest

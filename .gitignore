@@ -1,0 +1,24 @@
+# ─────────────── Secrets ───────────────
+.env
+*.pem
+*.key
+
+# ─────────────── OS ───────────────
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+
+# ─────────────── IDE ───────────────
+.vscode/
+.idea/
+
+# ─────────────── Ansible ───────────────
+*.retry
+
+# ─────────────── Swap files ───────────────
+*.swp
+*.swo
+
+# ─────────────── Docs pendientes de revisión ───────────────
+docs/

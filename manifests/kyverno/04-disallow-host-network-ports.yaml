@@ -1,0 +1,32 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-host-network-ports
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: host-network
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - argocd
+                - monitoring
+                - falco
+                - trivy-system
+                - diun
+                - kube-bench
+      validate:
+        message: "Host network y host ports no permitidos."
+        pattern:
+          spec:
+            =(hostNetwork): "false"
+            containers:
+              - =(ports):
+                  - =(hostPort): "null"

@@ -1,0 +1,13 @@
+serviceMonitor:
+  enabled: true
+  labels:
+    release: prometheus
+trivy:
+  mode: Standalone
+  ignoreUnfixed: true
+  metricsVulnIdEnabled: true
+  image:
+    registry: docker.io
+    repository: aquasec/trivy
+    tag: 0.71.0
+  dbRepository: aquasec/trivy-db:2

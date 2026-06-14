@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 850" width="100%" height="100%">
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M0,1 L9,5 L0,9" fill="#475569" />
+  </marker>
+  <marker id="ar" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M10,1 L1,5 L10,9" fill="#475569" />
+  </marker>
+</defs>
+<rect width="100%" height="100%" fill="#ffffff" />
+<style>
+  .lbl  { font-family: system-ui, sans-serif; font-size: 12px; fill: #64748b; }
+  .title{ font-family: system-ui, sans-serif; font-size: 14px; fill: #1e293b; font-weight: 600; }
+  .sub  { font-family: system-ui, sans-serif; font-size: 11px; fill: #64748b; }
+  .item { font-family: monospace; font-size: 12px; fill: #1e293b; }
+  .zone { font-family: system-ui, sans-serif; font-size: 12px; fill: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; }
+</style>
+<g>
+<text x="500" y="25" class="zone" text-anchor="middle">Internet</text>
+<rect x="60" y="40" width="150" height="55" rx="6" fill="#dbeafe" stroke="#334155" stroke-width="2" class="" />
+<text x="135" y="64" class="title" text-anchor="middle">DuckDNS</text>
+<text x="135" y="82" class="sub" text-anchor="middle">(DNS)</text>
+<rect x="250" y="40" width="150" height="55" rx="6" fill="#f1f5f9" stroke="#334155" stroke-width="2" class="" />
+<text x="325" y="64" class="title" text-anchor="middle">SSH</text>
+<text x="325" y="82" class="sub" text-anchor="middle">(fallback)</text>
+<rect x="750" y="40" width="150" height="55" rx="6" fill="#dcfce7" stroke="#334155" stroke-width="2" class="" />
+<text x="825" y="64" class="title" text-anchor="middle">Cloudflare</text>
+<text x="825" y="82" class="sub" text-anchor="middle">(future)</text>
+<rect x="380" y="195" width="240" height="55" rx="6" fill="#ede9fe" stroke="#334155" stroke-width="2" class="" />
+<text x="500" y="219" class="title" text-anchor="middle">Headscale</text>
+<text x="500" y="237" class="sub" text-anchor="middle">GCP · Mesh coordinator</text>
+<path d="M135,95 L135,155 Q135,175 165,175 L480,175 Q500,175 500,195" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#a)" />
+<text x="130" y="145" class="lbl" text-anchor="end">headscale.&lt;domain&gt;</text>
+<text x="130" y="162" class="lbl" text-anchor="end">→ GCP IP</text>
+<path d="M325,95 L325,285" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#a)"  />
+<path d="M825,95 L825,285" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#a)" stroke-dasharray="6,4" />
+<text x="340" y="175" class="lbl" text-anchor="start">Oracle VM (public IP)</text>
+<path d="M500,250 L500,285" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#a)"  />
+<rect x="40" y="285" width="920" height="520" rx="10" fill="#f0f9ff" stroke="#334155" stroke-width="2" stroke-dasharray="6,3" />
+<text x="500" y="307" class="zone" text-anchor="middle">tailnet</text>
+<text x="500" y="327" class="sub" text-anchor="middle">100.64.0.0/10</text>
+<path d="M215,335 L215,360" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#a)"  />
+<path d="M515,335 L515,360" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#a)"  />
+<path d="M802,335 L802,360" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#a)"  />
+<rect x="65" y="360" width="300" height="360" rx="6" fill="#eff6ff" stroke="#334155" stroke-width="2" class="" />
+<text x="215" y="384" class="title" text-anchor="middle">Oracle VM</text>
+<text x="215" y="402" class="sub" text-anchor="middle">100.64.0.2</text>
+<rect x="80" y="435" width="270" height="260" rx="5" fill="#ffffff" stroke="#334155" stroke-width="1.5" />
+<text x="215" y="457" class="title" text-anchor="middle">K3s</text>
+<rect x="90" y="473" width="250" height="24" rx="4" fill="#f0f9ff" stroke="#334155" stroke-width="1" />
+<text x="215" y="489" class="item" text-anchor="middle">ntfy</text>
+<rect x="90" y="499" width="250" height="24" rx="4" fill="#f0f9ff" stroke="#334155" stroke-width="1" />
+<text x="215" y="515" class="item" text-anchor="middle">ArgoCD</text>
+<rect x="90" y="525" width="250" height="24" rx="4" fill="#f0f9ff" stroke="#334155" stroke-width="1" />
+<text x="215" y="541" class="item" text-anchor="middle">Kyverno</text>
+<rect x="90" y="551" width="250" height="24" rx="4" fill="#f0f9ff" stroke="#334155" stroke-width="1" />
+<text x="215" y="567" class="item" text-anchor="middle">Falco</text>
+<rect x="90" y="577" width="250" height="24" rx="4" fill="#f0f9ff" stroke="#334155" stroke-width="1" />
+<text x="215" y="593" class="item" text-anchor="middle">Trivy</text>
+<rect x="90" y="603" width="250" height="24" rx="4" fill="#f0f9ff" stroke="#334155" stroke-width="1" />
+<text x="215" y="619" class="item" text-anchor="middle">Prometheus</text>
+<rect x="90" y="629" width="250" height="24" rx="4" fill="#f0f9ff" stroke="#334155" stroke-width="1" />
+<text x="215" y="645" class="item" text-anchor="middle">Grafana</text>
+<rect x="90" y="655" width="250" height="24" rx="4" fill="#f0f9ff" stroke="#334155" stroke-width="1" />
+<text x="215" y="671" class="item" text-anchor="middle">Uptime Kuma</text>
+<rect x="390" y="360" width="250" height="175" rx="6" fill="#fff7ed" stroke="#334155" stroke-width="2" class="" />
+<text x="515" y="384" class="title" text-anchor="middle">OPNsense</text>
+<text x="515" y="402" class="sub" text-anchor="middle">(Proxmox)</text>
+<rect x="402" y="425" width="226" height="24" rx="4" fill="#f0f9ff" stroke="#334155" stroke-width="1" />
+<text x="515" y="441" class="item" text-anchor="middle">NPM</text>
+<rect x="402" y="459" width="226" height="24" rx="4" fill="#f0f9ff" stroke="#334155" stroke-width="1" />
+<text x="515" y="475" class="item" text-anchor="middle">FW NAT</text>
+<rect x="402" y="493" width="226" height="24" rx="4" fill="#f0f9ff" stroke="#334155" stroke-width="1" />
+<text x="515" y="509" class="item" text-anchor="middle">Tailscale</text>
+<path d="M365,437 L388,437" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#ar)" />
+<path d="M390,437 L367,437" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#a)" opacity="0.5" />
+<path d="M515,535 L515,570" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#a)"  />
+<rect x="400" y="570" width="230" height="55" rx="6" fill="#f8fafc" stroke="#334155" stroke-width="2" class="" />
+<text x="515" y="594" class="title" text-anchor="middle">Clients (LAN)</text>
+<rect x="680" y="360" width="245" height="145" rx="6" fill="#f1f5f9" stroke="#334155" stroke-width="2" class="" />
+<text x="802" y="384" class="title" text-anchor="middle">Clients</text>
+<text x="802" y="402" class="sub" text-anchor="middle">(PC, notebook)</text>
+<text x="700" y="441" class="item" text-anchor="start">- kubectl</text>
+<text x="700" y="467" class="item" text-anchor="start">- Web UI</text>
+<text x="700" y="493" class="item" text-anchor="start">- ntfy push</text>
+<rect x="680" y="530" width="245" height="55" rx="6" fill="#f8fafc" stroke="#334155" stroke-width="2" class="" />
+<text x="802" y="554" class="title" text-anchor="middle">Clients (mobile)</text>
+<text x="700" y="568" class="item" text-anchor="start">- Web UI</text>
+</g>
+</svg>

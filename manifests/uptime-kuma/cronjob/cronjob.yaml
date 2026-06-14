@@ -1,0 +1,299 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitor-sync
+  namespace: uptime-kuma
+  labels:
+    app: monitor-sync
+data:
+  sync-monitors.py: |
+    #!/usr/bin/env python3
+    import json, os, sys, subprocess
+
+    KUMA_URL = os.getenv("KUMA_URL", "http://uptime-kuma:3001")
+    KUMA_USER = os.getenv("KUMA_USER", "admin")
+    KUMA_PASS = os.getenv("KUMA_PASSWORD")
+    MONITORS_FILE = "/config/monitors.json"
+
+    if not KUMA_PASS:
+        print("ERROR: KUMA_PASSWORD not set")
+        sys.exit(1)
+
+    if not os.path.exists(MONITORS_FILE):
+        print(f"ERROR: {MONITORS_FILE} not found")
+        sys.exit(1)
+
+    try:
+        from uptime_kuma_api import UptimeKumaApi
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "uptime-kuma-api"])
+        from uptime_kuma_api import UptimeKumaApi
+
+    with open(MONITORS_FILE) as f:
+        desired = json.load(f)
+
+    print(f"Desired monitors: {len(desired)}")
+
+    api = UptimeKumaApi(KUMA_URL)
+    try:
+        api.login(KUMA_USER, KUMA_PASS)
+
+        # 1. Ensure all tags exist, build name->tag_id map
+        tag_map = {}
+        desired_tags = {}
+        for mon in desired:
+            for tag in mon.get("tags", []):
+                desired_tags.setdefault(tag["name"], tag)
+
+        existing_tags = {t["name"]: t["id"] for t in api.get_tags()}
+        for name, info in desired_tags.items():
+            if name in existing_tags:
+                tag_map[name] = existing_tags[name]
+            else:
+                r = api.add_tag(name=name, color=info["color"])
+                tag_map[name] = r["id"]
+                print(f"  TAG   {name}")
+        print(f"Tags ready: {len(tag_map)}")
+
+        # 2. Create/update monitors
+        existing = {m["name"]: m for m in api.get_monitors()}
+        print(f"Existing monitors: {len(existing)}")
+
+        created = 0
+        updated = 0
+        for mon in desired:
+            name = mon["name"]
+            tags = mon.pop("tags", [])
+
+            if name not in existing:
+                mon_no_cond = {k: v for k, v in mon.items() if k != "conditions"}
+                data = api._build_monitor_data(**mon_no_cond)
+                data["conditions"] = ""
+                r = api._call('add', data)
+                mid = r["monitorID"]
+                print(f"  ADDED {name} (id={mid})")
+                created += 1
+                for tag in tags:
+                    tid = tag_map[tag["name"]]
+                    api.add_monitor_tag(monitor_id=mid, tag_id=tid)
+                    print(f"    TAG  {tag['name']}")
+            else:
+                cur = existing[name]
+                changed = False
+                for key in ("url", "hostname", "port", "interval"):
+                    if key in mon and str(cur.get(key, "")) != str(mon[key]):
+                        print(f"    {key}: {cur.get(key)} -> {mon[key]}")
+                        changed = True
+                if changed:
+                    api._call('edit', {**mon, "id": cur["id"], "conditions": ""})
+                    print(f"  UPDATED {name} (id={cur['id']})")
+                    updated += 1
+                    current_tag_ids = {t["tag_id"] for t in api.get_monitor_tags(cur["id"])}
+                    for tag in tags:
+                        tid = tag_map[tag["name"]]
+                        if tid not in current_tag_ids:
+                            api.add_monitor_tag(monitor_id=cur["id"], tag_id=tid)
+                            print(f"    TAG  {tag['name']}")
+                else:
+                    print(f"  SKIP  {name} (no changes)")
+
+        print(f"Done: {created} created, {updated} updated")
+    finally:
+        api.disconnect()
+
+  monitors.json: |
+    [
+      {
+        "name": "ntfy",
+        "type": "http",
+        "url": "http://<oracle-vm-mesh-ip>:30510/health",
+        "interval": 60,
+        "tags": [
+          {"name": "k3s", "color": "#42C0FB"},
+          {"name": "monitoring", "color": "#FF5733"}
+        ]
+      },
+      {
+        "name": "ArgoCD",
+        "type": "port",
+        "hostname": "<oracle-vm-mesh-ip>",
+        "port": 30443,
+        "interval": 60,
+        "tags": [
+          {"name": "k3s", "color": "#42C0FB"},
+          {"name": "gitops", "color": "#2E86C1"}
+        ]
+      },
+      {
+        "name": "Grafana",
+        "type": "http",
+        "url": "http://<oracle-vm-mesh-ip>:31000",
+        "interval": 60,
+        "tags": [
+          {"name": "k3s", "color": "#42C0FB"},
+          {"name": "monitoring", "color": "#FF5733"}
+        ]
+      },
+      {
+        "name": "Prometheus",
+        "type": "http",
+        "url": "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090",
+        "interval": 60,
+        "tags": [
+          {"name": "k3s", "color": "#42C0FB"},
+          {"name": "monitoring", "color": "#FF5733"}
+        ]
+      },
+      {
+        "name": "Diun",
+        "type": "http",
+        "url": "http://<oracle-vm-mesh-ip>:30510/diun",
+        "interval": 60,
+        "tags": [
+          {"name": "k3s", "color": "#42C0FB"},
+          {"name": "diun", "color": "#8E44AD"}
+        ]
+      },
+      {
+        "name": "Falco",
+        "type": "http",
+        "url": "http://falco-metrics.falco.svc.cluster.local:8765/metrics",
+        "interval": 60,
+        "tags": [
+          {"name": "k3s", "color": "#42C0FB"},
+          {"name": "security", "color": "#E74C3C"}
+        ]
+      },
+      {
+        "name": "K3s API",
+        "type": "port",
+        "hostname": "<oracle-vm-mesh-ip>",
+        "port": 6443,
+        "interval": 60,
+        "tags": [
+          {"name": "k3s", "color": "#42C0FB"},
+          {"name": "kubernetes", "color": "#326CE5"}
+        ]
+      },
+      {
+        "name": "Uptime Kuma",
+        "type": "http",
+        "url": "http://<oracle-vm-mesh-ip>:30700",
+        "interval": 60,
+        "tags": [
+          {"name": "k3s", "color": "#42C0FB"},
+          {"name": "monitoring", "color": "#FF5733"}
+        ]
+      },
+      {
+        "name": "Headscale",
+        "type": "ping",
+        "hostname": "<headscale-vm-ip>",
+        "interval": 120,
+        "tags": [
+          {"name": "external", "color": "#808080"},
+          {"name": "headscale", "color": "#1ABC9C"}
+        ]
+      },
+      {
+        "name": "DuckDNS",
+        "type": "http",
+        "url": "https://<domain>.duckdns.org",
+        "interval": 300,
+        "tags": [
+          {"name": "external", "color": "#808080"}
+        ]
+      },
+      {
+        "name": "OPNsense",
+        "type": "port",
+        "hostname": "<opnsense-mesh-ip>",
+        "port": 22,
+        "interval": 120,
+        "tags": [
+          {"name": "homelab", "color": "#28B463"},
+          {"name": "opnsense", "color": "#D4AC0D"}
+        ]
+      },
+      {
+        "name": "Alertmanager",
+        "type": "http",
+        "url": "http://prometheus-kube-prometheus-alertmanager.monitoring.svc.cluster.local:9093",
+        "interval": 60,
+        "tags": [
+          {"name": "k3s", "color": "#42C0FB"},
+          {"name": "monitoring", "color": "#FF5733"}
+        ]
+      }
+    ]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: monitor-sync
+  namespace: uptime-kuma
+  labels:
+    app: monitor-sync
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: monitor-sync
+  namespace: uptime-kuma
+  labels:
+    app: monitor-sync
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 300
+      template:
+        spec:
+          serviceAccountName: monitor-sync
+          restartPolicy: Never
+          containers:
+            - name: sync
+              image: python:3.12-slim
+              command:
+                - python3
+                - /scripts/sync-monitors.py
+              env:
+                - name: KUMA_URL
+                  value: "http://uptime-kuma:3001"
+                - name: KUMA_USER
+                  value: "admin"
+                - name: KUMA_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: autokuma-credentials
+                      key: password
+              volumeMounts:
+                - mountPath: /scripts
+                  name: scripts
+                - mountPath: /config
+                  name: monitors
+              resources:
+                limits:
+                  memory: 128Mi
+                  cpu: 200m
+                requests:
+                  memory: 64Mi
+                  cpu: 100m
+          volumes:
+            - name: scripts
+              configMap:
+                name: monitor-sync
+                items:
+                  - key: sync-monitors.py
+                    path: sync-monitors.py
+                    mode: 0755
+            - name: monitors
+              configMap:
+                name: monitor-sync
+                items:
+                  - key: monitors.json
+                    path: monitors.json

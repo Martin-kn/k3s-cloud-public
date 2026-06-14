@@ -1,0 +1,38 @@
+---
+- name: Install Helm on K3s node
+  hosts: oracle
+  become: yes
+
+  tasks:
+    - name: Check if Helm is already installed
+      stat:
+        path: /usr/local/bin/helm
+      register: helm_binary
+
+    - name: Install Helm
+      shell: |
+        curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      args:
+        creates: /usr/local/bin/helm
+      when: not helm_binary.stat.exists
+      register: helm_install
+
+    - name: Verify Helm version
+      command: helm version --short
+      register: helm_version
+      changed_when: false
+
+    - name: Show Helm version
+      debug:
+        msg: "Helm {{ helm_version.stdout }} instalado"
+
+    - name: Show help message
+      debug:
+        msg:
+          - "Comandos útiles:"
+          - "  helm repo add <nombre> <url>        # agregar repositorio"
+          - "  helm repo update                     # actualizar repos"
+          - "  helm search repo <nombre>            # buscar charts"
+          - "  helm install <release> <chart>       # instalar chart"
+          - "  helm list                            # listar releases"
+          - "  helm uninstall <release>             # uninstall release"

@@ -1,0 +1,82 @@
+---
+- name: Install K3s and tools on Oracle VM
+  hosts: oracle
+  become: yes
+  vars:
+    k3s_version: v1.36.1+k3s1
+    k3s_url: "https://get.k3s.io"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - tmux
+          - curl
+          - wget
+          - git
+          - ufw
+        state: present
+
+    - name: Check if K3s is already installed
+      stat:
+        path: /usr/local/bin/k3s
+      register: k3s_binary
+
+    - name: Download and install K3s
+      shell: |
+        curl -sfL {{ k3s_url }} | sh -s - server \
+          --write-kubeconfig-mode 644 \
+          --token "{{ k3s_token | default('') }}"
+      args:
+        creates: /usr/local/bin/k3s
+      when: not k3s_binary.stat.exists
+      register: k3s_install
+      failed_when:
+        - k3s_install.rc != 0
+        - '"already installed" not in k3s_install.stderr'
+
+    - name: Wait for K3s service to be ready
+      systemd:
+        name: k3s
+        state: started
+        enabled: yes
+      when: k3s_install.changed
+
+    - name: Wait for node to be ready
+      command: kubectl wait --for=condition=Ready node --all --timeout=60s
+      when: k3s_install.changed
+
+    - name: Ensure /root/.kube directory exists
+      file:
+        path: /root/.kube
+        state: directory
+        mode: '0755'
+
+    - name: Copy kubeconfig to root home
+      copy:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: /root/.kube/config
+        remote_src: yes
+        mode: '0600'
+
+    - name: Ensure .kube directory exists for ansible user
+      file:
+        path: "/home/{{ ansible_user }}/.kube"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
+    - name: Copy kubeconfig for ansible user
+      copy:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: "/home/{{ ansible_user }}/.kube/config"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
+        remote_src: yes
