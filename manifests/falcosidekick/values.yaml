@@ -1,0 +1,36 @@
+replicaCount: 1
+
+image:
+  registry: docker.io
+  repository: falcosecurity/falcosidekick
+  tag: 2.32.0
+  pullPolicy: IfNotPresent
+
+podSecurityContext:
+  runAsUser: 1234
+  fsGroup: 1234
+
+securityContext: {}
+
+serviceMonitor:
+  enabled: false
+
+config:
+  debug: false
+
+  webhook:
+    address: http://ntfy.ntfy.svc:80/falco
+    customHeaders: "Title: Falco Alert"
+
+service:
+  port: 2801
+
+rbac:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods"]
+      verbs: ["get", "list", "delete"]
+
+serviceAccount:
+  create: true

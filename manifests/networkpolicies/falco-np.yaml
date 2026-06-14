@@ -72,3 +72,38 @@ spec:
       ports:
         - port: 2801
           protocol: TCP
+---
+# Allow Falco pod egress on port 443 for artifact download (falcoctl, rules, plugins).
+# One-time startup operation. Only the Falco pod (not Falcosidekick) gets this exception.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-falco-egress-artifacts
+  namespace: falco
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: falco
+  egress:
+    - ports:
+        - port: 443
+          protocol: TCP
+---
+# Allow Falcosidekick egress to ntfy (port 80) for forwarding events.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-falcosidekick-egress-ntfy
+  namespace: falco
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: falcosidekick
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ntfy
+      ports:
+        - port: 80
+          protocol: TCP

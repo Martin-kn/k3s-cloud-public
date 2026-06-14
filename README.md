@@ -20,13 +20,14 @@ No services are exposed to the public internet.
 - **Scanning:** Trivy, kube-bench
 - **Monitoring:** Prometheus, Grafana, Alertmanager
 - **Image Updates:** Diun (+ Renovate planned)
+- **Alerting:** ntfy
 
 ## Design
 
 - **Mesh-only access** — every service is reachable exclusively through the tailnet (100.64.0.0/10). No open ports on the public internet.
 - **Defense in depth** — firewall (OPNsense) + admission control (Kyverno) + runtime detection (Falco) + vulnerability scanning (Trivy) + CIS benchmarking (kube-bench).
 - **GitOps-driven** — ArgoCD reconciles all manifests declaratively.
-- **Real-time alerts** — Prometheus Alertmanager and Diun send push notifications via ntfy for security events, vulnerabilities, and image updates.
+- **Real-time alerts** — Falco, Prometheus Alertmanager, and Diun send push notifications via ntfy for security events, vulnerabilities, and image updates.
 
 ## Dashboards
 
@@ -35,3 +36,6 @@ No services are exposed to the public internet.
 
 ![Vulnerability scanning](assets/trivy.png)
 *Trivy Operator vulnerability reports. ArgoCD v3.4.3 uses a Debian base image (not distroless), which accounts for ~90% of reported CVEs. Distroless-based images (Falco, Prometheus, node-exporter) show 0 Critical vulnerabilities.*
+
+![Falco alert notification](assets/ntfy-falco-alert.png)
+*Falco detects a container reading `/etc/shadow` and delivers a real-time alert via ntfy — captured by the `Read sensitive file untrusted` rule, forwarded through Falcosidekick, and pushed directly to the device. No dashboard watching required.*
