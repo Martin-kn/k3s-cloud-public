@@ -1,0 +1,29 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kubescape-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: kubescape
+      rules:
+        - alert: KubescapeClusterRiskScoreHigh
+          expr: kubescape_cluster_riskScore > 70
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Kubescape cluster risk score is {{ $value }}"
+            description: >
+              Cluster risk score is above 70%. Review findings at
+              kubectl get workloadconfigurationscansummaries -n kubescape
+
+        - alert: KubescapeFrameworkRiskScoreHigh
+          expr: kubescape_framework_riskScore{name=~"nsa|mitre"} > 60
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Kubescape framework {{ $labels.name }} risk score is {{ $value }}"

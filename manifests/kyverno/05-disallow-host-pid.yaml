@@ -22,6 +22,7 @@ spec:
                 - trivy-system
                 - diun
                 - kube-bench
+                - kubescape
       validate:
         message: "hostPID: true no permitido fuera de namespaces de sistema."
         pattern:

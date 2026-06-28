@@ -22,6 +22,7 @@ spec:
                 - trivy-system
                 - diun
                 - kube-bench
+                - kubescape
       validate:
         message: "Host network y host ports no permitidos."
         pattern:

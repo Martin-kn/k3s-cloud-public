@@ -22,6 +22,7 @@ spec:
                 - trivy-system
                 - diun
                 - kube-bench
+                - kubescape
       validate:
         message: "CPU y memory limits son requeridos."
         pattern:

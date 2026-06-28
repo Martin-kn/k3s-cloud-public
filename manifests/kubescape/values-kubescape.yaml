@@ -1,0 +1,56 @@
+clusterName: "oracle-k3s"
+
+capabilities:
+  operator: enable
+  configurationScan: enable
+  continuousScan: disable
+  nodeScan: enable
+  vulnerabilityScan: disable
+  relevancy: disable
+  vexGeneration: disable
+  runtimeObservability: disable
+  runtimeDetection: disable
+  malwareDetection: disable
+  admissionController: disable
+  networkPolicyService: disable
+  prometheusExporter: enable
+  autoUpgrading: disable
+
+kubescapeScheduler:
+  scanSchedule: "0 8 * * *"
+  requestBody:
+    commands:
+      - CommandName: "kubescapeScan"
+        args:
+          scanV1:
+            targetType: "framework"
+            targetNames: ["nsa", "mitre"]
+
+persistence:
+  storageClass: "local-path"
+  accessMode: ReadWriteOnce
+  size:
+    backingStorage: 5Gi
+    kubevuln: 5Gi
+
+kubescape:
+  serviceMonitor:
+    enabled: true
+    interval: 200s
+    scrapeTimeout: 150s
+    additionalLabels:
+      release: prometheus
+
+nodeAgent:
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 15s
+    additionalLabels:
+      release: prometheus
+
+global:
+  networkPolicy:
+    enabled: false
+  kubescapePsp:
+    enabled: false

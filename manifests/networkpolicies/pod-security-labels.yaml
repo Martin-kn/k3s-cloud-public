@@ -83,3 +83,12 @@ metadata:
   labels:
     pod-security.kubernetes.io/enforce: privileged
     pod-security.kubernetes.io/enforce-version: latest
+---
+# Kubescape needs privileged for node-agent (eBPF, host access).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kubescape
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest

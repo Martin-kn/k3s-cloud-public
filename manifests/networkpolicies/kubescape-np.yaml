@@ -1,0 +1,173 @@
+---
+# deny-all en namespace kubescape.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all
+  namespace: kubescape
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# Allow Prometheus to scrape metrics from Kubescape components.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus
+  namespace: kubescape
+spec:
+  podSelector: {}
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+---
+# Allow egress to K8s API + DNS.
+# IMPORTANTE: Se usa ipBlock con puerto 6443 (no 443).
+# El tráfico al servicio ClusterIP (10.43.0.1:443) es traducido por DNAT
+# a la IP real del nodo (10.0.0.192:6443) ANTES de que kube-router evalué
+# la NetworkPolicy. ipBlock matchea la IP post-DNAT; namespaceSelector
+# no funciona aquí porque K3s corre el API server como proceso del
+# sistema (no es un pod, no tiene namespace labels).
+# DNS si va a pods (CoreDNS), por eso namespaceSelector funciona.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-k8s-api-dns
+  namespace: kubescape
+spec:
+  podSelector: {}
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.0/24
+      ports:
+        - port: 6443
+          protocol: TCP
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+---
+# Allow egress on port 443 for downloading frameworks/artifacts at startup.
+# IMPORTANTE: Usa app.kubernetes.io/component (no app.kubernetes.io/name).
+# El pod kubescape tiene label name=kubescape-operator (chart-wide), no name=kubescape.
+# Ver labels reales del pod con: kubectl get pod -n kubescape -l app.kubernetes.io/component=kubescape --show-labels
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-artifacts
+  namespace: kubescape
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: kubescape
+  egress:
+    - ports:
+        - port: 443
+          protocol: TCP
+---
+# Allow ingress to storage service from other Kubescape components.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-storage-ingress
+  namespace: kubescape
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: storage
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: operator
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: kubescape-scheduler
+---
+# Allow scheduler jobs to trigger scans via operator (POST /v1/triggerAction).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-scheduler-to-operator
+  namespace: kubescape
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: kubescape-scheduler
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: operator
+      ports:
+        - port: 4002
+          protocol: TCP
+---
+# Allow operator to receive scan triggers from scheduler.
+# Sin esta NP, deny-all bloquea el ingress al operator incluso
+# si el scheduler tiene permitido el egress. NetworkPolicies
+# evaluan ingress y egress por separado.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-operator-ingress
+  namespace: kubescape
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: operator
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: kubescape-scheduler
+      ports:
+        - port: 4002
+          protocol: TCP
+---
+# Allow operator to forward scan requests to kubescape scanner.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-operator-to-kubescape
+  namespace: kubescape
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: operator
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: kubescape
+      ports:
+        - port: 8080
+          protocol: TCP
+---
+# Allow kubescape scanner to receive scan requests from operator.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kubescape-ingress
+  namespace: kubescape
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: kubescape
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: operator
+      ports:
+        - port: 8080
+          protocol: TCP

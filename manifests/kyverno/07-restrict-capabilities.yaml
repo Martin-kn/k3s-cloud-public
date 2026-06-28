@@ -22,6 +22,7 @@ spec:
                 - trivy-system
                 - diun
                 - kube-bench
+                - kubescape
       validate:
         message: "Los contenedores deben dropear todas las capacidades y no agregar ninguna."
         pattern:
